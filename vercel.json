@@ -1,0 +1,6 @@
+{
+  "rewrites": [
+    { "source": "/api/resolve/:code", "destination": "/api/resolve?code=:code" },
+    { "source": "/api/song/:id", "destination": "/api/song?id=:id" }
+  ]
+}

@@ -4,7 +4,8 @@
   "description": "Download songs from Suno AI",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "vercel-build": "echo build"
   },
   "engines": {
     "node": ">=14"
