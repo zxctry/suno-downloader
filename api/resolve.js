@@ -30,7 +30,8 @@ module.exports = async function handler(req, res) {
       return res.status(404).json({ error: 'Song not found' });
     }
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    console.error('[resolve error]', err.message);
+    return res.status(500).json({ error: err.message, detail: 'resolve_failed' });
   }
 };
 
