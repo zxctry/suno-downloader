@@ -31,7 +31,7 @@ module.exports = async function handler(req, res) {
 
     // Extract title
     const titleMatch = data.match(/<title>([^<]+?)\s*-\s*Suno/i);
-    const title = titleMatch ? titleMatch[1].trim() : 'Suno Song';
+    let title = titleMatch ? titleMatch[1].trim() : 'Suno Song';
 
     // Extract metadata from JSON-LD or meta tags
     let author = '';
