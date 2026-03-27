@@ -41,54 +41,44 @@
     </div>
     <div id="result"></div>
   </div>
-  <script>
-    function extractInfo(url) {
-      // Try short URL format: suno.com/s/xxxxx
-      var m = url.match(/suno\.com\/s\/([a-zA-Z0-9]+)/i);
-      if (m) return { type: 'short', code: m[1] };
-      
-      // Try song URL format: suno.com/song/xxx-xxx
-      m = url.match(/suno\.com\/song\/([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})/i);
-      if (m) return { type: 'song', id: m[1] };
-      
-      // Try raw UUID
-      m = url.match(/([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})/i);
-      if (m) return { type: 'song', id: m[1] };
-      
-      return null;
-    }
-    
+ <script>
     function handleDownload() {
       var btn = document.getElementById('dlBtn');
       var result = document.getElementById('result');
       var url = document.getElementById('urlInput').value.trim();
       
       if (!url) { alert('Please enter a Suno song URL'); return; }
-      
-      var info = extractInfo(url);
-      if (!info) { alert('Invalid Suno URL'); return; }
+      if (!/^https?:\/\/(www\.)?suno\.com\/.+/i.test(url)) { alert('Invalid Suno URL'); return; }
       
       btn.disabled = true;
       btn.textContent = 'Processing...';
       result.style.display = 'none';
       
-      var apiUrl = info.type === 'short' ? '/api/resolve/' + info.code : '/api/song/' + info.id;
-      
-      fetch(apiUrl).then(function(r) {
+      fetch('/api/sniff', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: url })
+      }).then(function(r) {
         if (!r.ok) throw new Error('Failed: ' + r.status);
         return r.json();
       }).then(function(data) {
-        var title = data.title || 'Suno Song';
-        var audioUrl = data.audioUrl;
+        if (data.error) throw new Error(data.error);
         
-        if (!audioUrl) {
-          throw new Error('Audio URL not found');
+        var title = data.title || 'Suno Song';
+        var audioUrl = data.audio || '';
+        var videoUrl = data.video || '';
+        var imgUrl = data.thumbnail || '';
+        
+        if (!audioUrl && !videoUrl) {
+          throw new Error('No downloadable media found');
         }
         
         var html = '<div class="result-card">';
         html += '<h3>' + title + '</h3>';
-        html += '<audio controls src="' + audioUrl + '"></audio>';
-        html += '<a class="dl-btn" href="' + audioUrl + '" download="' + title + '.mp3">Download MP3</a>';
+        if (imgUrl) html += '<img src="' + imgUrl + '" alt="cover" style="max-width:200px;border-radius:8px;margin:10px 0">';
+        if (audioUrl) html += '<audio controls src="' + audioUrl + '"></audio><br>';
+        if (audioUrl) html += '<a href="' + audioUrl + '" download class="btn-audio" target="_blank">Download Audio</a> ';
+        if (videoUrl) html += '<a href="' + videoUrl + '" download class="btn-video" target="_blank">Download Video</a>';
         html += '</div>';
         
         result.innerHTML = html;
