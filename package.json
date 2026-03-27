@@ -1,0 +1,12 @@
+{
+  "name": "suno-downloader",
+  "version": "1.0.0",
+  "description": "Download songs from Suno AI",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=14"
+  }
+}
