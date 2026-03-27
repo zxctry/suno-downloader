@@ -111,9 +111,14 @@ function formatDuration(seconds) {
   return m + ':' + String(s).padStart(2, '0');
 }
 
-function httpsGet(url) {
-  return new Promise((resolve, reject) => {
-    const options = {
+function httpsGet(inputUrl, maxRedirects) {
+  maxRedirects = maxRedirects || 5;
+  return new Promise(function (resolve, reject) {
+    var parsedUrl = new URL(inputUrl);
+    var options = {
+      hostname: parsedUrl.hostname,
+      path: parsedUrl.pathname + parsedUrl.search,
+      method: 'GET',
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
@@ -121,16 +126,26 @@ function httpsGet(url) {
         'Accept-Encoding': 'identity',
       }
     };
-    const req = https.get(url, options, function (res) {
+    var req = https.request(options, function (res) {
       if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
-        httpsGet(res.headers.location).then(resolve).catch(reject);
+        res.resume();
+        var redirectUrl = res.headers.location;
+        if (redirectUrl.startsWith('/')) {
+          redirectUrl = 'https://' + parsedUrl.hostname + redirectUrl;
+        }
+        if (maxRedirects > 0) {
+          httpsGet(redirectUrl, maxRedirects - 1).then(resolve).catch(reject);
+        } else {
+          reject(new Error('Too many redirects'));
+        }
         return;
       }
       if (res.statusCode !== 200) {
+        res.resume();
         reject(new Error('HTTP ' + res.statusCode));
         return;
       }
-      const chunks = [];
+      var chunks = [];
       res.on('data', function (c) { chunks.push(c); });
       res.on('end', function () {
         resolve(Buffer.concat(chunks).toString('utf8'));
@@ -138,5 +153,6 @@ function httpsGet(url) {
     });
     req.on('error', reject);
     req.setTimeout(25000, function () { req.destroy(new Error('Request timeout')); });
+    req.end();
   });
 }
